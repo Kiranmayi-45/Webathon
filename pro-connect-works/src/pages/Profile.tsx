@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Pencil, User, MapPin, Mail, Phone, Briefcase, Award, Star } from 'lucide-react';
+import FreelancercertificateUi from '../pages/FreelancercertificationUi'
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -251,8 +252,11 @@ const Profile: React.FC = () => {
                     <TabsTrigger value="experience">Experience</TabsTrigger>
                     <TabsTrigger value="education">Education</TabsTrigger>
                     <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                    <TabsTrigger value="certificates">Certifications</TabsTrigger>
                   </TabsList>
-
+                  <TabsContent value="certificates" className="space-y-4">
+                  <FreelancercertificateUi/>
+                  </TabsContent>
                   <TabsContent value="experience" className="space-y-4">
                     {profileData.experience.map((exp, index) => (
                       <Card key={index}>
@@ -321,6 +325,8 @@ const Profile: React.FC = () => {
                       <Pencil className="h-4 w-4 mr-2" /> Add Portfolio Item
                     </Button>
                   </TabsContent>
+                  
+                  
                 </Tabs>
               ) : (
                 // Client profile tabs
@@ -424,6 +430,7 @@ const Profile: React.FC = () => {
                       </CardContent>
                     </Card>
                   </TabsContent>
+                  
                 </Tabs>
               )}
             </div>
