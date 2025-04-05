@@ -15,6 +15,8 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import QuizPage from "./pages/QuizPage";
+// import QuizPageUiUx from "./pages/QuizPageUiUx.tsx/Ux";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,8 @@ const App = () => (
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/quiz" element={<QuizPage />} />
+              {/* <Route path='/connect-coursera' element={<ConnectAccounts />} /> */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

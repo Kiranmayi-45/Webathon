@@ -4,6 +4,7 @@ const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
+import generateTokenAndSetCookie from '../utils/generateToken';
 
 // Register new user (client or freelancer)
 exports.register = async (req, res) => {
@@ -69,6 +70,7 @@ exports.login = async (req, res) => {
     
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    generateTokenAndSetCookie(user._id, res);
     
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     
