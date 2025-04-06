@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
+import io from 'socket.io-client';
 import MainLayout from '../components/layout/MainLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { api, Conversation, Message } from '../services/api';
@@ -11,6 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { Search, Send, Phone, Video, MoreHorizontal, Paperclip, Smile, MessageSquare } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useTheme } from '@/contexts/ThemeContext';
+
+// Connect to your backend (adjust the URL if needed)
+const socket = io('http://localhost:5000');
 
 const Chat: React.FC = () => {
   const { user } = useAuth();
@@ -24,12 +27,14 @@ const Chat: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Fetch conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
+        // Pass the user id as a query parameter (ensure your api service supports this)
         const userConversations = await api.conversations.getAll();
         setConversations(userConversations);
-        
+
         if (userConversations.length > 0) {
           setSelectedConversation(userConversations[0].id);
         }
@@ -46,15 +51,12 @@ const Chat: React.FC = () => {
     };
 
     fetchConversations();
-    
-    // Set up periodic refresh of conversations
-    const intervalId = setInterval(() => {
-      fetchConversations();
-    }, 10000); // Refresh every 10 seconds
-    
-    return () => clearInterval(intervalId);
-  }, [toast]);
 
+    const intervalId = setInterval(fetchConversations, 10000);
+    return () => clearInterval(intervalId);
+  }, [toast, user]);
+
+  // Fetch messages for the selected conversation
   useEffect(() => {
     if (selectedConversation) {
       const fetchMessages = async () => {
@@ -73,26 +75,29 @@ const Chat: React.FC = () => {
 
       fetchMessages();
       
-      // Set up periodic refresh of messages
-      const intervalId = setInterval(() => {
-        fetchMessages();
-      }, 3000); // Refresh every 3 seconds
-      
-      return () => clearInterval(intervalId);
+      // Join the conversation room for real-time updates
+      socket.emit('join_conversation', selectedConversation);
+
+      // Listen for new messages
+      socket.on('new_message', (message: Message) => {
+        setMessages((prev) => [...prev, message]);
+      });
+
+      const intervalId = setInterval(fetchMessages, 3000);
+      return () => {
+        clearInterval(intervalId);
+        socket.off('new_message');
+      };
     }
   }, [selectedConversation, toast]);
 
+  // Scroll to bottom on new messages
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!selectedConversation || !newMessage.trim() || !user) return;
 
     try {
@@ -101,10 +106,9 @@ const Chat: React.FC = () => {
         user.id,
         newMessage.trim()
       );
-
+      // With real-time sockets, the new message will be broadcast to all participants
       setMessages([...messages, message]);
       setNewMessage('');
-      
       toast({
         title: "Message sent",
         description: "Your message has been sent successfully",
@@ -119,6 +123,7 @@ const Chat: React.FC = () => {
     }
   };
 
+  // Helper functions (e.g. getOtherParticipantName, formatTime, formatDate) remain unchanged
   const getOtherParticipantName = (conversation: Conversation) => {
     const otherParticipantId = conversation.participants.find(id => id !== user?.id);
     return otherParticipantId ? `User #${otherParticipantId.slice(-2)}` : 'Unknown User';
@@ -191,9 +196,7 @@ const Chat: React.FC = () => {
                   return (
                     <div 
                       key={conversation.id}
-                      className={`p-4 flex items-center cursor-pointer transition-colors ${
-                        isSelected ? 'bg-accent' : 'hover:bg-accent/50'
-                      }`}
+                      className={`p-4 flex items-center cursor-pointer transition-colors ${isSelected ? 'bg-accent' : 'hover:bg-accent/50'}`}
                       onClick={() => setSelectedConversation(conversation.id)}
                     >
                       <Avatar className="h-12 w-12">
@@ -201,7 +204,6 @@ const Chat: React.FC = () => {
                           {otherParticipantName.substring(0, 2)}
                         </AvatarFallback>
                       </Avatar>
-                      
                       <div className="ml-3 flex-1 overflow-hidden">
                         <div className="flex justify-between items-center">
                           <h3 className="font-medium truncate text-foreground">{otherParticipantName}</h3>
@@ -209,13 +211,8 @@ const Chat: React.FC = () => {
                             {formatTime(conversation.lastMessage.timestamp)}
                           </span>
                         </div>
-                        
                         <div className="flex items-center text-sm">
-                          <span className={`truncate ${
-                            conversation.lastMessage.senderId === user?.id 
-                              ? 'text-muted-foreground' 
-                              : 'text-foreground font-medium'
-                          }`}>
+                          <span className={`truncate ${conversation.lastMessage.senderId === user?.id ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
                             {conversation.lastMessage.senderId === user?.id && 'You: '}
                             {conversation.lastMessage.text}
                           </span>
@@ -243,21 +240,16 @@ const Chat: React.FC = () => {
                   <div className="flex items-center">
                     <Avatar className="h-10 w-10">
                       <AvatarFallback>
-                        {getOtherParticipantName(
-                          conversations.find(c => c.id === selectedConversation)!
-                        ).substring(0, 2)}
+                        {getOtherParticipantName(conversations.find(c => c.id === selectedConversation)!).substring(0, 2)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="ml-3">
                       <h3 className="font-medium text-foreground">
-                        {getOtherParticipantName(
-                          conversations.find(c => c.id === selectedConversation)!
-                        )}
+                        {getOtherParticipantName(conversations.find(c => c.id === selectedConversation)!)}
                       </h3>
                       <span className="text-xs text-green-500">Online</span>
                     </div>
                   </div>
-                  
                   <div className="flex space-x-2">
                     <Button variant="ghost" size="icon" className="text-foreground hover:bg-accent">
                       <Phone className="h-5 w-5" />
@@ -295,18 +287,14 @@ const Chat: React.FC = () => {
                               <Separator className="w-1/3" />
                             </div>
                           )}
-                          
                           <div className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                             {!isCurrentUser && (
                               <Avatar className="h-8 w-8 mt-1 mr-2">
                                 <AvatarFallback>
-                                  {getOtherParticipantName(
-                                    conversations.find(c => c.id === selectedConversation)!
-                                  ).substring(0, 2)}
+                                  {getOtherParticipantName(conversations.find(c => c.id === selectedConversation)!).substring(0, 2)}
                                 </AvatarFallback>
                               </Avatar>
                             )}
-                            
                             <div>
                               <div className={`rounded-lg px-4 py-2 max-w-md break-words ${
                                 isCurrentUser 
@@ -317,9 +305,7 @@ const Chat: React.FC = () => {
                               }`}>
                                 <p>{message.text}</p>
                               </div>
-                              <div className={`text-xs text-muted-foreground mt-1 ${
-                                isCurrentUser ? 'text-right' : ''
-                              }`}>
+                              <div className={`text-xs text-muted-foreground mt-1 ${isCurrentUser ? 'text-right' : ''}`}>
                                 {formatTime(message.timestamp)}
                               </div>
                             </div>
