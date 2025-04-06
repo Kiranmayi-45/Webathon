@@ -1,17 +1,21 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
 import { useAuth } from '../contexts/AuthContext';
 import { api, Project, Bid } from '../services/api';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Calendar, DollarSign, Clock, User, ArrowLeft, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -22,11 +26,12 @@ const ProjectDetail: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
+  // Controls whether the bid modal is open (for placing or editing a bid)
   const [isPlaceBidOpen, setIsPlaceBidOpen] = useState(false);
-  const [newBid, setNewBid] = useState({
+  // State for the bid proposal; only two fields now: amount and number of days
+  const [bidProposal, setBidProposal] = useState({
     amount: 0,
-    proposedTimeline: '',
-    coverLetter: '',
+    days: '',
   });
 
   const isFreelancer = user?.userType === 'freelancer';
@@ -53,49 +58,62 @@ const ProjectDetail: React.FC = () => {
     fetchProjectDetails();
   }, [projectId]);
 
-  const handlePlaceBid = async () => {
-    if (!projectId || !user?.id) return;
+  // Accept a bid (for project owner/client)
+  const handleAcceptBid = (bid: Bid) => {
+    setBids((prevBids) => prevBids.filter((b) => b.id !== bid.id));
+    toast.success('Bid accepted!');
+  };
 
-    if (!newBid.amount || !newBid.proposedTimeline || !newBid.coverLetter) {
-      toast.error('Please fill out all required fields');
+  // Contact: navigate to freelancer profile page
+  const handleContactFreelancer = (bid: Bid) => {
+    navigate(`/freelancers/${bid.freelancerId}`);
+  };
+
+  // Place or update a bid using the modal form
+  const handlePlaceOrUpdateBid = async () => {
+    if (!projectId || !user?.id) return;
+    if (!bidProposal.amount || !bidProposal.days) {
+      toast.error('Please fill out both fields');
       return;
     }
 
     setLoading(true);
     try {
-      const bid = await api.bids.create({
+      // If the user already has a bid, simulate an update by removing the old one.
+      if (bids.some(bid => bid.freelancerId === user.id)) {
+        setBids((prevBids) => prevBids.filter(bid => bid.freelancerId !== user.id));
+      }
+
+      // Create a new bid using the provided proposal fields.
+      const newBid = await api.bids.create({
         projectId,
         freelancerId: user.id,
-        amount: newBid.amount,
-        proposedTimeline: newBid.proposedTimeline,
+        amount: bidProposal.amount,
+        proposedTimeline: bidProposal.days,
       });
 
-      setBids([...bids, bid]);
+      // Add the new bid to the bids array.
+      setBids([...bids.filter(bid => bid.freelancerId !== user.id), newBid]);
+      toast.success('Bid submitted successfully!');
       setIsPlaceBidOpen(false);
-      toast.success('Bid placed successfully!');
-      
-      // Reset the form
-      setNewBid({
-        amount: 0,
-        proposedTimeline: '',
-        coverLetter: '',
-      });
     } catch (error) {
       console.error('Error placing bid:', error);
-      toast.error('Failed to place bid. Please try again.');
+      toast.error('Failed to submit bid. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  // Handle changes in the bid proposal fields
+  const handleBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewBid({
-      ...newBid,
+    setBidProposal({
+      ...bidProposal,
       [name]: name === 'amount' ? Number(value) : value,
     });
   };
 
+  // Determine if the current user already placed a bid
   const hasUserBid = bids.some(bid => bid.freelancerId === user?.id);
 
   const getStatusColor = () => {
@@ -144,11 +162,10 @@ const ProjectDetail: React.FC = () => {
       <MainLayout>
         <div className="text-center py-12">
           <h2 className="text-xl font-semibold">Project Not Found</h2>
-          <p className="text-gray-600 mt-2">The project you're looking for doesn't exist or has been removed.</p>
-          <Button 
-            className="mt-4"
-            onClick={() => navigate('/projects')}
-          >
+          <p className="text-gray-600 mt-2">
+            The project you're looking for doesn't exist or has been removed.
+          </p>
+          <Button className="mt-4" onClick={() => navigate('/projects')}>
             Return to Projects
           </Button>
         </div>
@@ -159,11 +176,7 @@ const ProjectDetail: React.FC = () => {
   return (
     <MainLayout>
       <div className="mb-6">
-        <Button 
-          variant="ghost" 
-          className="flex items-center mb-4" 
-          onClick={() => navigate('/projects')}
-        >
+        <Button variant="ghost" className="flex items-center mb-4" onClick={() => navigate('/projects')}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Back to Projects
         </Button>
         
@@ -174,77 +187,9 @@ const ProjectDetail: React.FC = () => {
               <Badge className={getStatusColor()}>
                 {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
               </Badge>
-              <span className="text-gray-600 text-sm">
-                Posted on {formatDate(project.createdAt)}
-              </span>
+              <span className="text-gray-600 text-sm">Posted on {formatDate(project.createdAt)}</span>
             </div>
           </div>
-          
-          {isFreelancer && project.status === 'open' && !hasUserBid && (
-            <Dialog open={isPlaceBidOpen} onOpenChange={setIsPlaceBidOpen}>
-              <DialogTrigger asChild>
-                <Button className="mt-4 md:mt-0 bg-brand-purple hover:bg-brand-light-purple">
-                  Place a Bid
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Place a Bid on "{project.title}"</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="amount">Your Bid ($)</Label>
-                      <Input
-                        id="amount"
-                        name="amount"
-                        type="number"
-                        placeholder="Enter amount"
-                        min="0"
-                        value={newBid.amount || ''}
-                        onChange={handleChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="proposedTimeline">Delivery Time</Label>
-                      <Input
-                        id="proposedTimeline"
-                        name="proposedTimeline"
-                        placeholder="E.g., 2 weeks"
-                        value={newBid.proposedTimeline}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="coverLetter">Cover Letter</Label>
-                    <Textarea
-                      id="coverLetter"
-                      name="coverLetter"
-                      placeholder="Explain why you're the right person for this project..."
-                      rows={5}
-                      value={newBid.coverLetter}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button 
-                    className="bg-brand-purple hover:bg-brand-light-purple" 
-                    onClick={handlePlaceBid}
-                  >
-                    Submit Bid
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-          
-          {isFreelancer && project.status === 'open' && hasUserBid && (
-            <Badge className="bg-blue-100 text-blue-800 py-2 px-4 text-sm mt-4 md:mt-0">
-              You have placed a bid on this project
-            </Badge>
-          )}
         </div>
       </div>
       
@@ -296,7 +241,7 @@ const ProjectDetail: React.FC = () => {
             </CardContent>
           </Card>
           
-          {/* Bids section (Visible to the project owner/client) */}
+          {/* Bids section for project owner/client */}
           {!isFreelancer && (
             <Card className="mt-6">
               <CardHeader>
@@ -317,18 +262,18 @@ const ProjectDetail: React.FC = () => {
                               <p className="text-sm text-gray-500">Bid placed on {formatDate(bid.createdAt)}</p>
                             </div>
                           </div>
-                          <Badge className="bg-purple-100 text-purple-800">
-                            ${bid.amount}
-                          </Badge>
+                          <Badge className="bg-purple-100 text-purple-800">${bid.amount}</Badge>
                         </div>
                         
                         <div className="mt-3 text-sm text-gray-600">
-                          <p>Proposed timeline: <span className="font-medium">{bid.proposedTimeline}</span></p>
+                          <p>Proposed timeline: <span className="font-medium">{bid.proposedTimeline} days</span></p>
                         </div>
                         
                         <div className="mt-4 flex justify-end gap-2">
-                          <Button variant="outline">Contact</Button>
-                          <Button className="bg-brand-purple hover:bg-brand-light-purple">
+                          <Button variant="outline" onClick={() => handleContactFreelancer(bid)}>
+                            Contact
+                          </Button>
+                          <Button className="bg-brand-purple hover:bg-brand-light-purple" onClick={() => handleAcceptBid(bid)}>
                             Accept Bid
                           </Button>
                         </div>
@@ -336,22 +281,18 @@ const ProjectDetail: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6 text-gray-500">
-                    No bids yet for this project.
-                  </div>
+                  <div className="text-center py-6 text-gray-500">No bids yet for this project.</div>
                 )}
               </CardContent>
             </Card>
           )}
         </div>
         
-        {/* Right column: Client info and actions */}
+        {/* Right column: Client info and bid actions */}
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>
-                {isFreelancer ? 'About the Client' : 'Project Owner'}
-              </CardTitle>
+              <CardTitle>{isFreelancer ? 'About the Client' : 'Project Owner'}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
@@ -361,9 +302,7 @@ const ProjectDetail: React.FC = () => {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">
-                    {isFreelancer ? 'Client' : 'You'} #{project.clientId.slice(-2)}
-                  </h3>
+                  <h3 className="font-semibold">{isFreelancer ? 'Client' : 'You'} #{project.clientId.slice(-2)}</h3>
                   <p className="text-sm text-gray-500">Member since Jan 2023</p>
                 </div>
               </div>
@@ -384,69 +323,124 @@ const ProjectDetail: React.FC = () => {
               </div>
               
               {isFreelancer && (
-                <Button 
-                  variant="outline" 
-                  className="w-full mt-6"
-                >
+                <Button variant="outline" className="w-full mt-6">
                   Contact Client
                 </Button>
               )}
             </CardContent>
           </Card>
           
-          {isFreelancer && project.status === 'open' && !hasUserBid && (
-            <Card className="mt-6">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2">Ready to bid?</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Submit a proposal with your bid amount and timeline to work on this project.
-                </p>
-                <Button 
-                  className="w-full bg-brand-purple hover:bg-brand-light-purple"
-                  onClick={() => setIsPlaceBidOpen(true)}
-                >
-                  Place a Bid
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          
-          {isFreelancer && hasUserBid && (
-            <Card className="mt-6 bg-blue-50 border-blue-200">
-              <CardContent className="pt-6">
-                <h3 className="font-semibold mb-2 flex items-center">
-                  <Badge className="bg-blue-100 text-blue-800 mr-2">
-                    Bid Placed
-                  </Badge>
-                  Your Proposal
-                </h3>
-                {bids.filter(bid => bid.freelancerId === user?.id).map(bid => (
-                  <div key={bid.id} className="space-y-2 text-sm">
-                    <div className="flex justify-between mt-3">
-                      <span className="text-gray-600">Your bid:</span>
-                      <span className="font-semibold">${bid.amount}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Timeline:</span>
-                      <span className="font-semibold">{bid.proposedTimeline}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Status:</span>
-                      <span className="font-semibold capitalize">{bid.status}</span>
-                    </div>
-                  </div>
-                ))}
-                <Button 
-                  variant="outline"
-                  className="w-full mt-4"
-                >
-                  Edit Proposal
-                </Button>
-              </CardContent>
-            </Card>
+          {/* Bid action section */}
+          {isFreelancer && project.status === 'open' && (
+            <>
+              {!hasUserBid ? (
+                <Card className="mt-6">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-2">Do you want to place a bid?</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Submit your proposal with your quoted amount and number of days.
+                    </p>
+                    <Button
+                      className="w-full bg-brand-purple hover:bg-brand-light-purple"
+                      onClick={() => {
+                        // Clear any previous bid proposal and open modal
+                        setBidProposal({ amount: 0, days: '' });
+                        setIsPlaceBidOpen(true);
+                      }}
+                    >
+                      Place Bid
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="mt-6 bg-blue-50 border-blue-200">
+                  <CardContent className="pt-6">
+                    <h3 className="font-semibold mb-2 flex items-center">
+                      <Badge className="bg-blue-100 text-blue-800 mr-2">Bid Placed</Badge>
+                      Your Proposal
+                    </h3>
+                    {bids
+                      .filter(bid => bid.freelancerId === user?.id)
+                      .map(bid => (
+                        <div key={bid.id} className="space-y-2 text-sm">
+                          <div className="flex justify-between mt-3">
+                            <span className="text-gray-600">Your bid:</span>
+                            <span className="font-semibold">${bid.amount}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Number of days:</span>
+                            <span className="font-semibold">{bid.proposedTimeline} days</span>
+                          </div>
+                        </div>
+                      ))}
+                    <Button
+                      variant="outline"
+                      className="w-full mt-4"
+                      onClick={() => {
+                        // Open modal with pre-populated fields from the user's bid if available.
+                        const existingBid = bids.find(bid => bid.freelancerId === user?.id);
+                        if (existingBid) {
+                          setBidProposal({
+                            amount: existingBid.amount,
+                            days: existingBid.proposedTimeline,
+                          });
+                        }
+                        setIsPlaceBidOpen(true);
+                      }}
+                    >
+                      Edit Proposal
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </div>
       </div>
+
+      {/* Modal for placing/editing bid */}
+      <Dialog open={isPlaceBidOpen} onOpenChange={setIsPlaceBidOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bid on "{project.title}"</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount Quoted ($)</Label>
+                <Input
+                  id="amount"
+                  name="amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  min="0"
+                  value={bidProposal.amount || ''}
+                  onChange={handleBidChange}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="days">Number of Days</Label>
+                <Input
+                  id="days"
+                  name="days"
+                  type="text"
+                  placeholder="E.g., 14"
+                  value={bidProposal.days}
+                  onChange={handleBidChange}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              className="bg-brand-purple hover:bg-brand-light-purple"
+              onClick={handlePlaceOrUpdateBid}
+            >
+              Submit Bid
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 };

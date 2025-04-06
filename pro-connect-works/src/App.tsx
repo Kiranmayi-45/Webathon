@@ -15,8 +15,12 @@ import ProjectDetail from "./pages/ProjectDetail";
 import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+<<<<<<< Updated upstream
 import QuizPage from "./pages/QuizPage";
 // import QuizPageUiUx from "./pages/QuizPageUiUx.tsx/Ux";
+=======
+import MLPage from "./pages/MLpage";
+>>>>>>> Stashed changes
 
 const queryClient = new QueryClient();
 
@@ -38,8 +42,13 @@ const App = () => (
               <Route path="/projects/:projectId" element={<ProjectDetail />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
+<<<<<<< Updated upstream
               <Route path="/quiz" element={<QuizPage />} />
               {/* <Route path='/connect-coursera' element={<ConnectAccounts />} /> */}
+=======
+              <Route path="/ml" element={<MLPage />} />
+              {/* Redirect to login if not authenticated */}
+>>>>>>> Stashed changes
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
