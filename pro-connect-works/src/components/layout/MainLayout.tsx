@@ -14,7 +14,8 @@ import {
   Bell,
   Search,
   Sun,
-  Moon
+  Moon,
+  BrainCircuit
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -73,7 +74,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       path: '/profile',
       icon: <User className="h-5 w-5" />,
     },
-  ];
+    !isFreelancer ? 
+    {
+      name: 'Top Suggestions',
+      path: '/ml',
+      icon: <BrainCircuit className="h-5 w-5" />,
+    } : null
+  ].filter(Boolean);
 
   return (
     <div className={`flex h-screen ${theme === 'dark' ? 'dark' : ''}`}>

@@ -16,6 +16,7 @@ import Chat from "./pages/Chat";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import QuizPage from "./pages/QuizPage";
+import MLPage from "./pages/MLpage";
 // import QuizPageUiUx from "./pages/QuizPageUiUx.tsx/Ux";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,13 @@ const App = () => (
               <Route path="/chat" element={<Chat />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/quiz" element={<QuizPage />} />
+              <Route path="/ml" element={<MLPage />} />
+              {/* <Route path="/quiz-uiux" element={<QuizPageUiUx />} /> */}
+              {/* <Route path='/connect-github' element={<ConnectAccounts />} /> */}
+              {/* <Route path='/connect-linkedin' element={<ConnectAccounts />} /> */}
+              {/* <Route path='/connect-google' element={<ConnectAccounts />} /> */}
+              {/* <Route path='/connect-facebook' element={<ConnectAccounts />} /> */}
+              {/* <Route path='/connect-twitter' element={<ConnectAccounts />} /> */}
               {/* <Route path='/connect-coursera' element={<ConnectAccounts />} /> */}
               <Route path="*" element={<NotFound />} />
             </Routes>
