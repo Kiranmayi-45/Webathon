@@ -1,6 +1,3 @@
-
-// Mock API service with promises that resolve with fake data
-
 // Types
 export interface User {
   id: string;
@@ -19,6 +16,12 @@ export interface Project {
   status: 'open' | 'in-progress' | 'completed';
   clientId: string;
   createdAt: string;
+  freelancerId?: string;
+  freelancer?: {
+    id: string;
+    name: string;
+    rating?: number;
+  };
 }
 
 export interface Bid {
@@ -57,6 +60,7 @@ export interface Message {
   senderId: string;
   text: string;
   timestamp: string;
+  read?: boolean;
 }
 
 export interface Post {
@@ -87,7 +91,7 @@ export const api = {
           name: isFreelancer ? 'John Freelancer' : 'Alice Client',
           email,
           userType: isFreelancer ? 'freelancer' : 'client',
-          avatar: `/avatar-${isFreelancer ? 'male' : 'female'}.png`,
+          avatar: `/avatar-${isFreelancer ? 'male' : 'female'}.png`
         },
         token: 'mock-jwt-token'
       };
@@ -103,7 +107,7 @@ export const api = {
           name: userData.name || 'New User',
           email: userData.email || 'user@example.com',
           userType: userData.userType || 'freelancer',
-          avatar: userData.userType === 'freelancer' ? '/avatar-male.png' : '/avatar-female.png',
+          avatar: userData.userType === 'freelancer' ? '/avatar-male.png' : '/avatar-female.png'
         },
         token: 'mock-jwt-token'
       };
@@ -306,7 +310,7 @@ export const api = {
           id: 'conv1',
           participants: ['c1', 'f1'],
           lastMessage: {
-            text: 'That sounds good to me. Let\'s proceed with the project.',
+            text: "That sounds good to me. Let's proceed with the project.",
             senderId: 'c1',
             timestamp: '2023-08-17T13:45:00Z'
           }
@@ -315,7 +319,7 @@ export const api = {
           id: 'conv2',
           participants: ['c1', 'f2'],
           lastMessage: {
-            text: 'I\'ve reviewed your portfolio and I\'m interested in working with you.',
+            text: "I've reviewed your portfolio and I'm interested in working with you.",
             senderId: 'f2',
             timestamp: '2023-08-16T15:20:00Z'
           }
@@ -324,7 +328,7 @@ export const api = {
           id: 'conv3',
           participants: ['c2', 'f1'],
           lastMessage: {
-            text: 'Could you provide more details about your rates?',
+            text: "Could you provide more details about your rates?",
             senderId: 'c2',
             timestamp: '2023-08-15T10:30:00Z'
           }
@@ -340,35 +344,35 @@ export const api = {
           id: 'm1',
           conversationId,
           senderId: 'c1',
-          text: 'Hi, I\'m interested in your services for my project.',
+          text: "Hi, I'm interested in your services for my project.",
           timestamp: '2023-08-17T13:30:00Z'
         },
         {
           id: 'm2',
           conversationId,
           senderId: 'f1',
-          text: 'Hello! Thanks for reaching out. I\'d be happy to help with your project.',
+          text: "Hello! Thanks for reaching out. I'd be happy to help with your project.",
           timestamp: '2023-08-17T13:35:00Z'
         },
         {
           id: 'm3',
           conversationId,
           senderId: 'c1',
-          text: 'Great! Here are some details about what I need...',
+          text: "Great! Here are some details about what I need...",
           timestamp: '2023-08-17T13:40:00Z'
         },
         {
           id: 'm4',
           conversationId,
           senderId: 'f1',
-          text: 'I understand your requirements. I can definitely help with this.',
+          text: "I understand your requirements. I can definitely help with this.",
           timestamp: '2023-08-17T13:42:00Z'
         },
         {
           id: 'm5',
           conversationId,
           senderId: 'c1',
-          text: 'That sounds good to me. Let\'s proceed with the project.',
+          text: "That sounds good to me. Let's proceed with the project.",
           timestamp: '2023-08-17T13:45:00Z'
         }
       ];
@@ -420,7 +424,7 @@ export const api = {
           authorType: 'freelancer',
           authorName: 'Sarah Johnson',
           authorAvatar: '/avatar-female.png',
-          content: 'Just updated my portfolio with my latest UX/UI designs. I\'m currently available for new projects!',
+          content: "Just updated my portfolio with my latest UX/UI designs. I'm currently available for new projects!",
           image: 'https://images.unsplash.com/photo-1541462608143-67571c6738dd?q=80&w=2070&auto=format&fit=crop',
           likes: 32,
           comments: 7,
@@ -432,7 +436,7 @@ export const api = {
           authorType: 'client',
           authorName: 'Green Earth Foundation',
           authorAvatar: '/avatar-male.png',
-          content: 'We\'re seeking a content writer with experience in environmental topics for our blog. Long-term collaboration possible.',
+          content: "We're seeking a content writer with experience in environmental topics for our blog. Long-term collaboration possible.",
           likes: 19,
           comments: 4,
           createdAt: '2023-08-15T16:10:00Z'
@@ -528,3 +532,4 @@ export const api = {
     }
   }
 };
+
