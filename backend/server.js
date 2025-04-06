@@ -49,13 +49,8 @@ io.on('connection', (socket) => {
   });
 });
 
-<<<<<<< Updated upstream
-const PORT = process.env.PORT || 7000;
-app.listen(PORT, () => {
-=======
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
->>>>>>> Stashed changes
   console.log(`Server running on port ${PORT}`);
 });
 
