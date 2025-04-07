@@ -109,10 +109,26 @@
 
 
 import React, { useState } from 'react';
-import { Calendar, DollarSign, Clock, Star, CreditCard, Check, X, User, AlertCircle } from 'lucide-react';
+import { 
+  Calendar, 
+  DollarSign, 
+  Clock, 
+  Star, 
+  CreditCard, 
+  Check, 
+  X, 
+  User, 
+  AlertCircle 
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -120,6 +136,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 
+// ----------------------
+// Interfaces
+// ----------------------
 interface User {
   id: string;
   name: string;
@@ -160,7 +179,7 @@ interface Review {
   createdAt: string;
 }
 
-// Extend the interface to include freelancer details that will be shown in the UI
+// Extended to show freelancer details
 interface ExtendedBid extends Bid {
   freelancerName?: string;
   freelancerAvatar?: string;
@@ -184,7 +203,7 @@ interface ProjectCardProps {
   initialReview?: Review | null | undefined;
 }
 
-// Sample freelancer data for in-progress and completed projects
+// Sample freelancer data (for demonstration)
 const sampleFreelancers: Record<string, User> = {
   'f1': {
     id: 'f1',
@@ -223,7 +242,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onView,
   onBid,
   userType = 'client',
-  assignedFreelancer = status === 'in-progress' || status === 'completed' 
+  assignedFreelancer = (status === 'in-progress' || status === 'completed')
     ? (status === 'completed' ? sampleFreelancers.f2 : sampleFreelancers.f1)
     : undefined,
   bids = [
@@ -267,12 +286,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   freelancerReview,
   initialReview
 }) => {
+  // ----------------------------------
+  // Local State
+  // ----------------------------------
   const [isRatingDialogOpen, setIsRatingDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isBidsDialogOpen, setIsBidsDialogOpen] = useState(false);
+
+  // Rating & Review
   const [rating, setRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [hoveredStar, setHoveredStar] = useState(0);
+
+  // Payment
   const [paymentAmount, setPaymentAmount] = useState(budget);
   const [paymentNote, setPaymentNote] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('credit-card');
@@ -282,9 +308,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     expiryDate: '',
     cvv: ''
   });
+
+  // Bids & Reviews
   const [localBids, setLocalBids] = useState<ExtendedBid[]>(bids);
   const [localFreelancerReview, setFreelancerReview] = useState<Review | null | undefined>(initialReview);
 
+  // ----------------------------------
+  // Helpers
+  // ----------------------------------
   const getStatusColor = () => {
     switch (status) {
       case 'open':
@@ -307,28 +338,46 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     }).format(date);
   };
 
+  const renderStars = (count: number, interactive = true) => {
+    return Array(5).fill(0).map((_, i) => (
+      <Star
+        key={i}
+        className={`transition-colors ${
+          interactive ? 'cursor-pointer h-8 w-8' : 'h-4 w-4'
+        } ${
+          i < (interactive ? (hoveredStar || rating) : count) 
+            ? 'text-yellow-400 fill-yellow-400' 
+            : 'text-gray-300'
+        }`}
+        onMouseEnter={() => interactive && setHoveredStar(i + 1)}
+        onMouseLeave={() => interactive && setHoveredStar(0)}
+        onClick={() => interactive && setRating(i + 1)}
+      />
+    ));
+  };
+
+  // ----------------------------------
+  // Actions
+  // ----------------------------------
   const handleSubmitRating = () => {
     if (rating === 0) {
       toast.error('Please select a rating');
       return;
     }
 
-    // Create a new review object
     const newReview: Review = {
       id: `review-${Date.now()}`,
       freelancerId: assignedFreelancer?.id || 'unknown',
-      clientId: 'c1', // Assuming current client id
+      clientId: 'c1', // Example client ID
       projectId: id,
-      rating: rating,
+      rating,
       comment: reviewComment,
       createdAt: new Date().toISOString()
     };
 
-    // Update the freelancer review state
     setFreelancerReview(newReview);
-
-    // Here you would make an API call to submit the rating
-    toast.success(`Thank you for rating ${assignedFreelancer?.name || 'the freelancer'} with ${rating} stars!`);
+    // Make API call here if needed
+    toast.success(`You rated ${assignedFreelancer?.name || 'the freelancer'} ${rating} stars!`);
     setIsRatingDialogOpen(false);
     setRating(0);
     setReviewComment('');
@@ -339,16 +388,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       toast.error('Please enter a valid payment amount');
       return;
     }
-
     if (paymentMethod === 'credit-card') {
       if (!creditCardInfo.cardNumber || !creditCardInfo.cardName || !creditCardInfo.expiryDate || !creditCardInfo.cvv) {
         toast.error('Please fill in all credit card details');
         return;
       }
     }
-
-    // Here you would make an API call to process the payment
-    toast.success(`Payment of $${paymentAmount} has been processed successfully!`);
+    // Make API call here if needed
+    toast.success(`Payment of $${paymentAmount} processed successfully!`);
     setIsPaymentDialogOpen(false);
     setPaymentAmount(budget);
     setPaymentNote('');
@@ -364,11 +411,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     setLocalBids(localBids.map(bid => {
       if (bid.id === bidId) {
         return { ...bid, status: 'accepted' };
-      } else {
-        return { ...bid, status: 'rejected' };
       }
+      return { ...bid, status: 'rejected' };
     }));
-    
     toast.success('Bid accepted successfully!');
   };
 
@@ -379,24 +424,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       }
       return bid;
     }));
-    
     toast.success('Bid rejected');
   };
 
-  const renderStars = (count: number, interactive = true) => {
-    return Array(5).fill(0).map((_, i) => (
-      <Star
-        key={i}
-        className={`${interactive ? 'cursor-pointer' : ''} h-${interactive ? '8' : '4'} w-${interactive ? '8' : '4'} ${
-          i < (interactive ? (hoveredStar || rating) : count) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-        }`}
-        onMouseEnter={() => interactive && setHoveredStar(i + 1)}
-        onMouseLeave={() => interactive && setHoveredStar(0)}
-        onClick={() => interactive && setRating(i + 1)}
-      />
-    ));
-  };
-
+  // ----------------------------------
+  // Conditional UI Rendering
+  // ----------------------------------
   const renderFreelancerInfo = () => {
     if ((status === 'in-progress' || status === 'completed') && assignedFreelancer) {
       return (
@@ -412,7 +445,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">{assignedFreelancer.name}</p>
               {assignedFreelancer.rating && (
-                <div className="flex items-center">
+                <div className="flex items-center ml-2">
                   <span className="text-sm font-medium mr-1">{assignedFreelancer.rating}</span>
                   <div className="flex">
                     {renderStars(assignedFreelancer.rating, false)}
@@ -421,7 +454,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              {status === 'in-progress' ? 'Working on this project' : 'Completed this project'}
+              {status === 'in-progress' ? 'Currently working on this project' : 'Completed this project'}
             </p>
           </div>
         </div>
@@ -452,158 +485,144 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     return null;
   };
 
+  // Decide which buttons to show based on status & userType
   const renderActionButtons = () => {
-    // For completed projects - client can rate and pay
-    if (status === 'completed' && userType === 'client') {
-      return (
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={() => onView && onView(id)}
-          >
-            View Details
-          </Button>
-          {!localFreelancerReview && (
-            <Button 
-              className="flex-1 bg-yellow-500 hover:bg-yellow-600" 
-              onClick={() => setIsRatingDialogOpen(true)}
-            >
-              <Star className="h-4 w-4 mr-2" /> Rate
-            </Button>
-          )}
-          <Button 
-            className="flex-1 bg-green-600 hover:bg-green-700" 
-            onClick={() => setIsPaymentDialogOpen(true)}
-          >
-            <CreditCard className="h-4 w-4 mr-2" /> Pay
-          </Button>
-        </div>
-      );
-    }
-    
-    // For open projects - client can view bids, freelancer can place bid
-    if (status === 'open') {
-      if (userType === 'client') {
-        return (
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              className="flex-1" 
-              onClick={() => onView && onView(id)}
-            >
-              View Details
-            </Button>
-            <Button 
-              className="flex-1 bg-brand-purple hover:bg-brand-light-purple" 
-              onClick={() => setIsBidsDialogOpen(true)}
-            >
-              View Bids ({localBids.filter(bid => bid.status === 'pending').length})
-            </Button>
-          </div>
-        );
-      } else if (userType === 'freelancer') {
-        const hasBid = localBids.some(bid => bid.freelancerId === 'f1'); // Assuming current user is f1
-        return (
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              className="flex-1" 
-              onClick={() => onView && onView(id)}
-            >
-              View Details
-            </Button>
-            {!hasBid && onBid && (
+    if (userType === 'client') {
+      switch (status) {
+        case 'open':
+          return (
+            <div className="flex space-x-2 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => onView?.(id)}>
+                View Details
+              </Button>
               <Button 
                 className="flex-1 bg-brand-purple hover:bg-brand-light-purple" 
-                onClick={() => onBid && onBid(id)}
+                onClick={() => setIsBidsDialogOpen(true)}
               >
-                Place Bid
+                View Bids ({localBids.filter(b => b.status === 'pending').length})
               </Button>
-            )}
-            {hasBid && (
+            </div>
+          );
+        case 'in-progress':
+          return (
+            <div className="flex space-x-2 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => onView?.(id)}>
+                View Details
+              </Button>
+              <Button className="flex-1 bg-blue-600 hover:bg-blue-700">
+                Message Freelancer
+              </Button>
+            </div>
+          );
+        case 'completed':
+          return (
+            <div className="flex space-x-2 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => onView?.(id)}>
+                View Details
+              </Button>
+              {!localFreelancerReview && (
+                <Button 
+                  className="flex-1 bg-yellow-500 hover:bg-yellow-600"
+                  onClick={() => setIsRatingDialogOpen(true)}
+                >
+                  <Star className="h-4 w-4 mr-2" /> Rate
+                </Button>
+              )}
               <Button 
-                className="flex-1 bg-blue-100 text-blue-800" 
-                variant="outline"
-                disabled
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => setIsPaymentDialogOpen(true)}
               >
-                Bid Placed
+                <CreditCard className="h-4 w-4 mr-2" /> Pay
               </Button>
-            )}
-          </div>
-        );
+            </div>
+          );
+        default:
+          return null;
+      }
+    } else if (userType === 'freelancer') {
+      switch (status) {
+        case 'open':
+          // Check if freelancer has already placed a bid
+          const hasBid = localBids.some(bid => bid.freelancerId === 'f1'); // Example: current user is 'f1'
+          return (
+            <div className="flex space-x-2 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => onView?.(id)}>
+                View Details
+              </Button>
+              {!hasBid ? (
+                <Button 
+                  className="flex-1 bg-brand-purple hover:bg-brand-light-purple"
+                  onClick={() => onBid?.(id)}
+                >
+                  Place Bid
+                </Button>
+              ) : (
+                <Button variant="outline" className="flex-1 bg-blue-100 text-blue-800" disabled>
+                  Bid Placed
+                </Button>
+              )}
+            </div>
+          );
+        case 'in-progress':
+        case 'completed':
+          return (
+            <div className="flex space-x-2 mt-4">
+              <Button variant="outline" className="flex-1" onClick={() => onView?.(id)}>
+                View Details
+              </Button>
+            </div>
+          );
+        default:
+          return null;
       }
     }
-
-    // For in-progress projects
-    if (status === 'in-progress') {
-      return (
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={() => onView && onView(id)}
-          >
-            View Details
-          </Button>
-          {userType === 'client' && (
-            <Button 
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-            >
-              Message Freelancer
-            </Button>
-          )}
-        </div>
-      );
-    }
-
-    // Default buttons
-    return (
-      <div className="flex space-x-2">
-        <Button 
-          variant="outline" 
-          className="flex-1" 
-          onClick={() => onView && onView(id)}
-        >
-          View Details
-        </Button>
-      </div>
-    );
+    return null;
   };
 
+  // ----------------------------------
+  // Render
+  // ----------------------------------
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
-        <div className="p-5">
-          <div className="flex items-start justify-between">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-1">{title}</h3>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition hover:shadow-md">
+        <div className="px-6 py-5">
+          {/* Top row: Title & Status */}
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-base sm:text-lg md:text-xl font-semibold text-gray-900 line-clamp-1">
+              {title}
+            </h3>
             <Badge className={`ml-2 ${getStatusColor()}`}>
               {status.charAt(0).toUpperCase() + status.slice(1)}
             </Badge>
           </div>
-          
+
+          {/* Freelancer Info (if assigned) */}
           {renderFreelancerInfo()}
+          {/* Review Info (if completed) */}
           {renderReviewInfo()}
-          
-          <p className="text-sm text-gray-600 line-clamp-2 mb-4 min-h-[40px]">{description}</p>
-          
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+
+          {/* Description */}
+          <p className="text-sm text-gray-600 line-clamp-2 mb-4 leading-relaxed">
+            {description}
+          </p>
+
+          {/* Budget, Timeline, Date */}
+          <div className="flex flex-wrap gap-4 text-sm text-gray-600">
             <div className="flex items-center">
               <DollarSign className="h-4 w-4 text-gray-400 mr-1" />
               <span>${budget.toLocaleString()}</span>
             </div>
-            
             <div className="flex items-center">
               <Clock className="h-4 w-4 text-gray-400 mr-1" />
               <span>{timeline}</span>
             </div>
-            
             <div className="flex items-center">
               <Calendar className="h-4 w-4 text-gray-400 mr-1" />
               <span>Posted {formatDate(createdAt)}</span>
             </div>
           </div>
-          
+
+          {/* Action Buttons */}
           {renderActionButtons()}
         </div>
       </div>
@@ -630,15 +649,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 </div>
               </div>
             )}
-
             <div className="space-y-4">
               <div>
                 <Label>Your Rating</Label>
-                <div className="flex space-x-1 mt-2">
-                  {renderStars(0, true)}
-                </div>
+                <div className="flex space-x-1 mt-2">{renderStars(0, true)}</div>
               </div>
-
               <div>
                 <Label htmlFor="reviewComment">Review Comment (Optional)</Label>
                 <Textarea
@@ -653,11 +668,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRatingDialogOpen(false)}>Cancel</Button>
-            <Button 
-              className="bg-brand-purple hover:bg-brand-light-purple" 
-              onClick={handleSubmitRating}
-            >
+            <Button variant="outline" onClick={() => setIsRatingDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-brand-purple hover:bg-brand-light-purple" onClick={handleSubmitRating}>
               Submit Rating
             </Button>
           </DialogFooter>
@@ -686,7 +700,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 </div>
               </div>
             )}
-
             <div className="space-y-4">
               <div>
                 <Label htmlFor="paymentAmount">Payment Amount ($)</Label>
@@ -698,14 +711,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   className="mt-2"
                 />
               </div>
-
               <div>
                 <Label>Payment Method</Label>
-                <RadioGroup 
-                  value={paymentMethod} 
-                  onValueChange={setPaymentMethod}
-                  className="mt-2"
-                >
+                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-2">
                   <div className="flex items-center space-x-2 bg-white border rounded-md p-3 cursor-pointer hover:bg-gray-50">
                     <RadioGroupItem value="credit-card" id="credit-card" />
                     <Label htmlFor="credit-card" className="flex items-center cursor-pointer">
@@ -715,7 +723,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   </div>
                 </RadioGroup>
               </div>
-
               {paymentMethod === 'credit-card' && (
                 <div className="space-y-3 p-3 border rounded-md bg-gray-50">
                   <div>
@@ -724,7 +731,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                       id="cardNumber"
                       placeholder="1234 5678 9012 3456"
                       value={creditCardInfo.cardNumber}
-                      onChange={(e) => setCreditCardInfo({...creditCardInfo, cardNumber: e.target.value})}
+                      onChange={(e) => setCreditCardInfo({ ...creditCardInfo, cardNumber: e.target.value })}
                       className="mt-1"
                     />
                   </div>
@@ -734,7 +741,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                       id="cardName"
                       placeholder="John Smith"
                       value={creditCardInfo.cardName}
-                      onChange={(e) => setCreditCardInfo({...creditCardInfo, cardName: e.target.value})}
+                      onChange={(e) => setCreditCardInfo({ ...creditCardInfo, cardName: e.target.value })}
                       className="mt-1"
                     />
                   </div>
@@ -745,7 +752,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                         id="expiryDate"
                         placeholder="MM/YY"
                         value={creditCardInfo.expiryDate}
-                        onChange={(e) => setCreditCardInfo({...creditCardInfo, expiryDate: e.target.value})}
+                        onChange={(e) => setCreditCardInfo({ ...creditCardInfo, expiryDate: e.target.value })}
                         className="mt-1"
                       />
                     </div>
@@ -756,14 +763,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                         placeholder="123"
                         type="password"
                         value={creditCardInfo.cvv}
-                        onChange={(e) => setCreditCardInfo({...creditCardInfo, cvv: e.target.value})}
+                        onChange={(e) => setCreditCardInfo({ ...creditCardInfo, cvv: e.target.value })}
                         className="mt-1"
                       />
                     </div>
                   </div>
                 </div>
               )}
-
               <div>
                 <Label htmlFor="paymentNote">Payment Note (Optional)</Label>
                 <Textarea
@@ -775,7 +781,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   className="mt-2"
                 />
               </div>
-
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">Payment Summary</h4>
                 <div className="flex justify-between text-sm">
@@ -794,11 +799,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancel</Button>
-            <Button 
-              className="bg-green-600 hover:bg-green-700" 
-              onClick={handleSubmitPayment}
-            >
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700" onClick={handleSubmitPayment}>
               Process Payment
             </Button>
           </DialogFooter>
@@ -814,65 +818,80 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <div className="py-4">
             {localBids.length > 0 ? (
               <div className="space-y-4">
-                {localBids.filter(bid => bid.status !== 'rejected').map((bid) => (
-                  <div 
-                    key={bid.id} 
-                    className={`border rounded-lg p-4 transition-colors ${
-                      bid.status === 'accepted' ? 'bg-green-50 border-green-200' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Avatar className="h-10 w-10 mr-3">
-                          <AvatarFallback>{bid.freelancerName?.[0] || 'UF'}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold">{bid.freelancerName || `Freelancer #${bid.freelancerId.slice(-2)}`}</h3>
-                          <p className="text-sm text-gray-500">Bid placed on {formatDate(bid.createdAt)}</p>
+                {localBids
+                  .filter(bid => bid.status !== 'rejected')
+                  .map((bid) => (
+                    <div
+                      key={bid.id}
+                      className={`border rounded-lg p-4 transition-colors ${
+                        bid.status === 'accepted' 
+                          ? 'bg-green-50 border-green-200' 
+                          : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Avatar className="h-10 w-10 mr-3">
+                            <AvatarFallback>
+                              {bid.freelancerName?.[0] || 'UF'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-semibold">
+                              {bid.freelancerName || `Freelancer #${bid.freelancerId.slice(-2)}`}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Bid placed on {formatDate(bid.createdAt)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <Badge className={` ${bid.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'}`}>
-                        {bid.status === 'accepted' ? 'Accepted' : `$${bid.amount}`}
-                      </Badge>
-                    </div>
-                    
-                    <div className="mt-3 text-sm text-gray-600">
-                      <p>Proposed timeline: <span className="font-medium">{bid.proposedTimeline}</span></p>
-                    </div>
-                    
-                    {bid.coverLetter && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-md">
-                        <p className="text-sm text-gray-700">{bid.coverLetter}</p>
-                      </div>
-                    )}
-                    
-                    {bid.status === 'pending' && (
-                      <div className="mt-4 flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          className="text-gray-600"
-                          onClick={() => handleRejectBid(bid.id)}
+                        <Badge
+                          className={`${
+                            bid.status === 'accepted'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}
                         >
-                          <X className="h-4 w-4 mr-1" /> Reject
-                        </Button>
-                        <Button 
-                          className="bg-brand-purple hover:bg-brand-light-purple"
-                          onClick={() => handleAcceptBid(bid.id)}
-                        >
-                          <Check className="h-4 w-4 mr-1" /> Accept Bid
-                        </Button>
+                          {bid.status === 'accepted' ? 'Accepted' : `$${bid.amount}`}
+                        </Badge>
                       </div>
-                    )}
-                    
-                    {bid.status === 'accepted' && (
-                      <div className="mt-4 flex justify-end gap-2">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                          Message Freelancer
-                        </Button>
+                      <div className="mt-3 text-sm text-gray-600">
+                        <p>
+                          Proposed timeline: 
+                          <span className="font-medium"> {bid.proposedTimeline}</span>
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      {bid.coverLetter && (
+                        <div className="mt-3 p-3 bg-gray-50 rounded-md">
+                          <p className="text-sm text-gray-700">{bid.coverLetter}</p>
+                        </div>
+                      )}
+                      {bid.status === 'pending' && (
+                        <div className="mt-4 flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            className="text-gray-600"
+                            onClick={() => handleRejectBid(bid.id)}
+                          >
+                            <X className="h-4 w-4 mr-1" /> Reject
+                          </Button>
+                          <Button
+                            className="bg-brand-purple hover:bg-brand-light-purple"
+                            onClick={() => handleAcceptBid(bid.id)}
+                          >
+                            <Check className="h-4 w-4 mr-1" /> Accept Bid
+                          </Button>
+                        </div>
+                      )}
+                      {bid.status === 'accepted' && (
+                        <div className="mt-4 flex justify-end gap-2">
+                          <Button className="bg-blue-600 hover:bg-blue-700">
+                            Message Freelancer
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
             ) : (
               <div className="text-center py-12 text-gray-500">

@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Pencil, User, MapPin, Mail, Phone, Briefcase, Award, Star } from 'lucide-react';
-import FreelancercertificateUi from '../pages/FreelancercertificationUi'
+import FreelancercertificateUi from './FreelancercertificationUi'
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
